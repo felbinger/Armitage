@@ -1,4 +1,4 @@
-FROM kalilinux/kali-linux-docker
+FROM kalilinux/kali-rolling
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV HOME /root
