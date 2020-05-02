@@ -14,7 +14,7 @@ services:
       - '55553:55553'
     volumes:
       - "/srv/armitage/root:/root"
-      - "/srv/armitage/postgres:/var/lib/postgresql/data"
+      - "/srv/armitage/postgres:/var/lib/postgresql/12/main/"
       - "/srv/armitage/VPN.conf:/etc/openvpn/VPN.conf:ro"
       - "/srv/armitage/msf_config/:/usr/share/metasploit-framework/config/"
     environment:
@@ -26,3 +26,7 @@ services:
     sysctls:
       net.ipv6.conf.all.disable_ipv6: 0
 ```
+
+# TODO
+* split into 3 containers (openvpn, armitage, postgres), to improve security
+* after first is completed: remove supervisord
