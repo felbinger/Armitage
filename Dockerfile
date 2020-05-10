@@ -2,7 +2,7 @@ FROM metasploitframework/metasploit-framework
 
 # teamserver certificate information
 ENV CN CommonName
-ENV OU OrganisationUnit
+ENV OU OrganizationalUnit
 
 # PostgreSQL configuration
 ENV PGSQL_HOST postgres
