@@ -1,54 +1,33 @@
-ARG CN=common_name
-ARG OU=organisation_unit
+FROM metasploitframework/metasploit-framework
 
-FROM kalilinux/kali-rolling
+# teamserver certificate information
+ENV CN CommonName
+ENV OU OrganisationUnit
 
-ENV DEBIAN_FRONTEND noninteractive
-ENV HOME /root
-ENV PASSWORD teamserver_default_password
+# PostgreSQL configuration
+ENV PGSQL_HOST postgres
+ENV PGSQL_PORT 5432
+ENV PGSQL_USER postgres
+ENV PGSQL_PASSWORD msf
+ENV PGSQL_DATABASE msf
 
-RUN apt-get update \
- && apt-get install -y postgresql metasploit-framework armitage openvpn supervisor apt-utils
+# install armitage
+ENV ARMITAGE_URL "http://www.fastandeasyhacking.com/download/armitage150813.tgz"
+RUN wget -O- ${ARMITAGE_URL} | tar -xzf - -C /usr/src/ \
+ && apk update \
+ && apk add openjdk8=8.242.08-r0 \
+ && ln -s /usr/src/metasploit-framework/msfrpcd /usr/local/bin/ \
+ && ln -s /usr/src/armitage/teamserver /usr/local/bin/ \
+ && sed -i "s|armitage.jar|/usr/src/armitage/armitage.jar|g" /usr/src/armitage/teamserver
 
-RUN mkdir -p /var/log/supervisor \
- && mkdir -p /etc/supervisor/conf.d
+# disconnect from database and quit from msfconsole to enable teamserver start
+RUN sed -i '/db_connect.*/i run_single("db_disconnect")' /usr/src/metasploit-framework/docker/msfconsole.rc \
+ && sed -i '/db_connect.*/a run_single("quit")' /usr/src/metasploit-framework/docker/msfconsole.rc
 
-RUN sed -i 's/CN=Armitage Hacker/CN=${CN}/g' /usr/share/armitage/teamserver
-RUN sed -i 's/OU=FastAndEasyHacking/OU=${OU}/g' /usr/share/armitage/teamserver
+# configure armitage
+RUN sed -i "s/CN=Armitage Hacker/CN=${CN}/g" /usr/src/armitage/teamserver \
+ && sed -i "s/OU=FastAndEasyHacking/OU=${OU}/g" /usr/src/armitage/teamserver
 
-# autoconnect to vpn (.conf files in /etc/openvpn)
-RUN sed -i 's/#AUTOSTART="all"/AUTOSTART="all"/g' /etc/default/openvpn
-
-# install additional software
-RUN apt-get update \
- && apt-get install -y gdb gcc g++ python3.6 python2.7 php7.2 sqlmap gobuster dirbuster dirb nmap curl wget vim nano screen tmux openssh-server \
- && apt-get autoremove -y \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-# allow ssh root login
-RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config
-
-# change password of root
-RUN echo "root:YOUR_ROOT_PASSWORD" | chpasswd
-
-# get wordlists
-RUN mkdir -p /wordlists && \
-    wget -O- http://downloads.skullsecurity.org/passwords/rockyou.txt.bz2 | bunzip2 > /wordlists/rockyou.txt&& \
-    wget -O- http://downloads.skullsecurity.org/passwords/500-worst-passwords.txt.bz2 | bunzip2 > /wordlists/500-worst-passwords.txt && \
-    wget -O- http://downloads.skullsecurity.org/passwords/twitter-banned.txt.bz2 | bunzip2 > /wordlists/twitter-banned.txt && \
-    wget https://raw.githubusercontent.com/diasdavid/node-dirbuster/master/lists/directory-list-1.0.txt -O /wordlists/directory-list-1.0.txt && \
-    wget https://raw.githubusercontent.com/diasdavid/node-dirbuster/master/lists/directory-list-lowercase-2.3-small.txt -O /wordlists/directory-list-lowercase-2.3-small.txt && \
-    wget https://raw.githubusercontent.com/diasdavid/node-dirbuster/master/lists/directory-list-lowercase-2.3-medium.txt -O /wordlists/directory-list-lowercase-2.3-medium.txt && \
-    wget https://raw.githubusercontent.com/diasdavid/node-dirbuster/master/lists/directory-list-lowercase-2.3-big.txt -O /wordlists/directory-list-lowercase-2.3-big.txt && \
-    wget https://raw.githubusercontent.com/diasdavid/node-dirbuster/master/lists/directory-list-2.3-small.txt -O /wordlists/directory-list-2.3-small.txt && \
-    wget https://raw.githubusercontent.com/diasdavid/node-dirbuster/master/lists/directory-list-2.3-medium.txt -O /wordlists/directory-list-2.3-medium.txt && \
-    wget https://raw.githubusercontent.com/diasdavid/node-dirbuster/master/lists/directory-list-2.3-big.txt -O /wordlists/directory-list-2.3-big.txt && \
-    wget https://raw.githubusercontent.com/diasdavid/node-dirbuster/master/lists/apache-user-enum-1.0.txt -O /wordlists/apache-user-enum-1.0.txt && \
-    wget https://raw.githubusercontent.com/diasdavid/node-dirbuster/master/lists/apache-user-enum-2.0.txt -O /wordlists/apache-user-enum-2.0.txt
-
-
-WORKDIR $HOME
-
-ADD supervisor.conf /etc/supervisor/conf.d/supervisord.conf
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+ADD entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT /entrypoint.sh

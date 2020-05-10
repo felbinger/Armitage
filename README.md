@@ -1,32 +1,14 @@
 ## Dockerized Armitage Teamserver
 * persistent PostgreSQL database
-* OpenVPN client
-
-```yml
-version: '3'
-services:
-  armitage:
-    image: armitage
-    container_name: root_armitage_1
+* [OpenVPN client] - will be implemented soon
+  ```yml
+  openvpn:
+    image: dperson/openvpn-client
     restart: always
-    ports:
-      - '2222:22'
-      - '55553:55553'
     volumes:
-      - "/srv/armitage/root:/root"
-      - "/srv/armitage/postgres:/var/lib/postgresql/12/main/"
-      - "/srv/armitage/VPN.conf:/etc/openvpn/VPN.conf:ro"
-      - "/srv/armitage/msf_config/:/usr/share/metasploit-framework/config/"
-    environment:
-      PASSWORD: YOUR_TEAMSERVER_PASSWORD
+      - "/srv/armitage/htb.conf:/vpn/htb.conf:ro"
     cap_add:
       - NET_ADMIN
     devices:
       - "/dev/net/tun:/dev/net/tun"
-    sysctls:
-      net.ipv6.conf.all.disable_ipv6: 0
-```
-
-# TODO
-* split into 3 containers (openvpn, armitage, postgres), to improve security
-* after first is completed: remove supervisord
+  ```
