@@ -33,7 +33,7 @@ volumes:
 ## with OpenVPN
 ```yaml
 version: '3'
-services:Common NameCommon Name
+services:
   postgres:
     image: postgres:latest
     restart: always
@@ -91,3 +91,4 @@ volumes:
 # TODO
 * postgres password authentication (without trust) does not work.
 * ipv6 vpn support
+* fix docker build github actions workflow (master tag should be edge, the latest release should get the latest tag)
