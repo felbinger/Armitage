@@ -25,7 +25,8 @@ jobs:
             ghcr.io/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
+            type=ref,event=p
+            type=edge
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 
