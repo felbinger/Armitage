@@ -1,27 +1,93 @@
 ## Dockerized Armitage Teamserver
-* persistent PostgreSQL database
-* [OpenVPN client] - will be implemented soon
-  ```yml
+
+# docker-compose.yml
+## Standalone
+```yaml
+version: '3'
+services:
+  postgres:
+    image: postgres:latest
+    restart: always
+    environment:
+      - "POSTGRES_HOST_AUTH_METHOD=trust"
+      - "POSTGRES_DB=msf"
+    volumes:
+      - "postgres-data:/var/lib/postgresql/data:Z"
+
+  armitage:
+    image: ghcr.io/felbinger/armitage
+    restart: always
+    depends_on:
+      - postgres
+    ports:
+      - "4000-4100:4000-4100"         # exploitation ports
+      - "55553:55553"                 # teamserver ports
+    environment:
+      - "LHOST=123.123.123.123"       # your external ip, required for teamserver start, default is container ip
+      - "ARMITAGE_PASSWORD=secret"    # password for the teamserver
+
+volumes:
+  postgres-data:
+```
+
+## with OpenVPN
+```yaml
+version: '3'
+services:Common NameCommon Name
+  postgres:
+    image: postgres:latest
+    restart: always
+    environment:
+      - "POSTGRES_HOST_AUTH_METHOD=trust"
+      - "POSTGRES_DB=msf"
+    volumes:
+      - "postgres-data:/var/lib/postgresql/data:Z"
+
+  armitage:
+    image: ghcr.io/felbinger/armitage
+    restart: always
+    depends_on:
+      - postgres
+    network_mode: service:openvpn
+    environment:
+      - "LHOST=123.123.123.123"       # your external ip, required for teamserver start, default is container ip
+      - "ARMITAGE_PASSWORD=secret"    # password for the teamserver
+
   openvpn:
     image: dperson/openvpn-client
     restart: always
+    ports:
+      - "55553:55553"                 # teamserver port
     volumes:
-      - "/srv/armitage/htb.conf:/vpn/htb.conf:ro"
+      - "./hackthebox.ovpn:/vpn/htb.conf:ro"
     cap_add:
-      - NET_ADMIN
+      - "NET_ADMIN"
     devices:
       - "/dev/net/tun:/dev/net/tun"
-  ```
+    sysctls:
+      - "net.ipv6.conf.all.disable_ipv6=0"    # I couldn't get it working with ipv6 support yet...
 
-### Environment Variables
-| Name           | Description                                                                  | Default Value                                                 |
-|----------------|------------------------------------------------------------------------------|---------------------------------------------------------------|
-| CN             | Common Name for the certificate                                              | CommonName                                                    |
-| OU             | Organizational Unit for the certificate                                      | OrganizationalUnit                                            |
-| PGSQL_HOST     | PostgreSQL hostname (another container)                                      | postgres                                                      |
-| PGSQL_PORT     | PostgreSQL port                                                              | 5432                                                          |
-| PGSQL_USER     | PostgreSQL username                                                          | postgres                                                      |
-| PGSQL_PASSWORD | PostgreSQL password (can't be empty even if authentication method is trust!) | msf                                                           |
-| PGSQL_DATABASE | PostgreSQL database name                                                     | msf                                                           |
-| ARMITAGE_URL   | Armitage Download URL                                                        | http://www.fastandeasyhacking.com/download/armitage150813.tgz |
-|                |                                                                              |                                                               ||
+
+volumes:
+  postgres-data:
+```
+
+# Environment Variables
+|        Name       |                                  Description                                 |    Default Value   |
+|:------------------|:-----------------------------------------------------------------------------|:-------------------|
+| PG_HOST           | PostgreSQL hostname (another container)                                      | postgres           |
+| PG_PORT           | PostgreSQL port                                                              | 5432               |
+| PG_USER           | PostgreSQL username                                                          | postgres           |
+| PG_PASSWORD       | PostgreSQL password (can't be empty even if authentication method is trust!) | msf                |
+| PG_DATABASE       | PostgreSQL database name                                                     | msf                |
+| ARMITAGE_CN       | X.509 Common Name                                                            | Armitage Hacker    |
+| ARMITAGE_OU       | X.509 Organizational Unit                                                    | FastAndEasyHacking |
+| ARMITAGE_O        | X.509 Organization Name                                                      | Armitage           |
+| ARMITAGE_L        | X.509 Locality                                                               | Somewhere          |
+| ARMITAGE_S        | X.509 State                                                                  | Cyberspace         |
+| ARMITAGE_C        | X.509 Country                                                                | Earth              |
+| ARMITAGE_PASSWORD | Teamserver Password                                                          |                    |
+
+# TODO
+* postgres password authentication (without trust) does not work.
+* ipv6 vpn support
