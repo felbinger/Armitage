@@ -91,4 +91,3 @@ volumes:
 # TODO
 * postgres password authentication (without trust) does not work.
 * ipv6 vpn support
-* fix docker build github actions workflow (master tag should be edge, the latest release should get the latest tag)
